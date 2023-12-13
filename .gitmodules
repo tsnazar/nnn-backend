@@ -1,0 +1,3 @@
+[submodule "nnn-backend-nest"]
+	path = nnn-backend-nest
+	url = https://github.com/VladFo01/nnn-backend.git
