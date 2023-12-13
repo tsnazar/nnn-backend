@@ -1,3 +1,6 @@
 [submodule "nnn-backend-nest"]
 	path = nnn-backend-nest
 	url = https://github.com/VladFo01/nnn-backend.git
+[submodule "nnn-backend-rust"]
+	path = nnn-backend-rust
+	url = https://github.com/HoldinSky/NomNomNavigator.git
