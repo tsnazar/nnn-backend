@@ -1,0 +1,96 @@
+version: '3'
+services:
+  nest-backend:
+    restart : unless-stopped	
+    build:
+      context: ./nnn-backend-nest/.
+      dockerfile: "Dockerfile"
+    links:
+      - postgresdb
+      - mongodb
+    volumes:
+      - ./nnn-backend-nest:/app
+    networks:
+      - backnet
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      POSTGRES_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      MONGO_URL: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}?directConnection=true&serverSelectionTimeoutMS=2000&authSource=${MONGO_DB}
+      RUST_SERVICE_URL: ${RUST_SERVICE_URL}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgresdb
+      - mongodb
+      - rust-backend
+
+  rust-backend:
+    restart : unless-stopped	
+    build:
+      context: ./nnn-backend-rust/.
+      dockerfile: "Dockerfile"
+    links:
+      - postgresdb
+      - redisdb
+      - mongodb
+    volumes:
+      - ./nnn-backend-rust:/app
+    networks:
+      - backnet
+    environment:
+      PG_DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      REDIS_DATABASE_URI: redis://${REDIS_HOST}:${REDIS_PORT}
+      ADDRESS: 0.0.0.0:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgresdb
+      - redisdb
+
+  mongodb:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
+      MONGO_USER: ${MONGO_USER}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+
+    ports:
+      - 27016:27017
+    volumes:
+      - mongo:/data
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - backnet
+
+  postgresdb:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - 5431:5432
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    networks:
+      - backnet
+  
+  redisdb:
+    image: redis:latest
+    ports:
+      - 6377:6378
+    volumes:
+      - redis:/data
+    networks:
+      - backnet
+
+volumes:
+  mongo: {}
+  redis: 
+    driver: local
+  postgres: {}
+
+networks:
+  backnet:
